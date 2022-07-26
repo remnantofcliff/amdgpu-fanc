@@ -36,4 +36,4 @@ cargo build --release
 ```
 The executable will be placed in ./target/release/
 
-Example run command: `sudo amdgpu-fanc 30:30 50:35 60:40 70:50 90:100`.
+Example run command: `sudo amdgpu-fanc 30:30 50:35 60:40 70:50 90:100`
