@@ -1,5 +1,5 @@
 [package]
-name = "amdgpufc-final"
+name = "amdgpu-fanc"
 version = "0.1.0"
 edition = "2021"
 
