@@ -65,7 +65,9 @@ impl HwmonFiles {
     ) -> Result<(), Box<dyn std::error::Error>> {
         for (tempx_input, pwm1) in self.tempx_input.iter_mut().zip(self.pwm1.iter_mut()) {
             buf.clear();
+
             tempx_input.read_to_string(buf)?;
+
             tempx_input.rewind()?;
 
             let pwm =
