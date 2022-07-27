@@ -3,7 +3,6 @@
 #include <csignal>
 
 static std::atomic_bool received(false);
-
 static void signal_handler(int) {
   received.store(true, std::memory_order_relaxed);
 }
@@ -15,7 +14,7 @@ static constexpr struct sigaction construct_signal_action() {
 }
 
 int8_t signals::listen() {
-  struct sigaction signal_action = construct_signal_action();
+  auto signal_action = construct_signal_action();
 
   return sigaction(SIGHUP, &signal_action, nullptr) +
          sigaction(SIGINT, &signal_action, nullptr) +

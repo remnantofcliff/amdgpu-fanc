@@ -12,7 +12,8 @@ pub fn listen() -> Result<(), &'static str> {
 }
 
 ///
-/// Returns if the program should close.
+/// Returns if the program should close. If signals::listen() was not called,
+/// the function will always return false.
 ///
 pub fn should_close() -> bool {
     unsafe { bindings::signals::should_close() }

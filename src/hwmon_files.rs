@@ -98,9 +98,10 @@ impl Drop for HwmonFiles {
     }
 }
 
+#[repr(u8)]
 pub enum Mode {
-    Automatic = 2,
-    Manual = 1,
+    Automatic = b'2',
+    Manual = b'1',
 }
 
 fn change_fan_control_mode(mut base_path: PathBuf, mode: Mode) -> Result<(), std::io::Error> {
