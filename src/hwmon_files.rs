@@ -1,6 +1,5 @@
 use crate::interpolation::TempToPwm;
 use std::{
-    fmt::Display,
     fmt::Write as FWrite,
     fs::File,
     io::{Read, Seek, Write},
@@ -53,13 +52,6 @@ impl HwmonFiles {
             pwm1: pwm1_vec.into_boxed_slice(),
             tempx_input: tempx_input_vec.into_boxed_slice(),
         })
-    }
-
-    ///
-    /// Returns the number of valid gpus found.
-    ///
-    pub fn len(&self) -> usize {
-        self.pwm1.len()
     }
 
     ///
