@@ -11,7 +11,7 @@ const SLEEP_DURATION: Duration = Duration::from_secs(5);
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // May panic during here, otherwise the program should never realistically
     // panic
-    let temp_to_pwm = &TempToPwm::from_args();
+    let temp_to_pwm = TempToPwm::from_args();
 
     // Get necessary files
     let mut files = HwmonFiles::new()?;
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             break Ok(());
         }
 
-        files.update_pwms(&mut string_buffer, temp_to_pwm)?;
+        files.update_pwms(&mut string_buffer, &temp_to_pwm)?;
 
         std::thread::sleep(SLEEP_DURATION);
     }
