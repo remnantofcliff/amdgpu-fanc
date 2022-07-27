@@ -11,7 +11,10 @@ use std::{
 /// is disabled when the struct is dropped.
 ///
 pub struct HwmonFiles {
+    // pwm files to write to
     pwm1: Box<[File]>,
+
+    // files to read temperatures from
     tempx_input: Box<[File]>,
 }
 
@@ -21,6 +24,7 @@ impl HwmonFiles {
     ///
     pub fn new() -> Result<HwmonFiles, std::io::Error> {
         let mut pwm1_vec = Vec::with_capacity(1);
+
         let mut tempx_input_vec = Vec::with_capacity(1);
 
         for mut path in get_hwmon_paths()? {
@@ -28,6 +32,7 @@ impl HwmonFiles {
                 // open /sys/class/hwmon/hwmon(x)/temp(y)_input
                 path.push("temp2_input");
 
+                // Fallback temperature read
                 if !path.exists() {
                     path.pop();
                     path.push("temp1_input");
@@ -70,10 +75,10 @@ impl HwmonFiles {
 
             tempx_input.rewind()?;
 
+            buf.clear();
+
             let pwm =
                 temp_to_pwm.interpolate((buf[0..buf.len() - 1].parse::<i32>()? / 1000) as i16);
-
-            buf.clear();
 
             writeln!(buf, "{pwm}")?;
 

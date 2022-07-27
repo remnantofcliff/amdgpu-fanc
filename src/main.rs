@@ -10,10 +10,13 @@ const SLEEP_DURATION: Duration = Duration::from_secs(5);
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // May panic during here, otherwise the program should never realistically
-    // panic.
+    // panic
     let temp_to_pwm = &TempToPwm::from_args();
+
+    // Get necessary files
     let mut files = HwmonFiles::new()?;
 
+    // Set listener for shutdown signals
     signals::listen()?;
 
     // Avoid allocations by reusing buffer

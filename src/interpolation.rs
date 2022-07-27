@@ -22,9 +22,11 @@ impl TempToPwm {
     pub fn from_args() -> Self {
         TempToPwm {
             inner: std::env::args()
+                // Skip executable name
                 .skip(1)
                 .map(|arg| {
                     let mut split = arg.split(':');
+
                     (
                         split
                             .next()
@@ -52,18 +54,18 @@ impl TempToPwm {
     /// array, the pwm corresponding to the minimum temperature is used.
     ///
     /// If the temperature is higher than the maximum temperature in the inner
-    /// array, the pwm corresponding to the maximum temperature is used.
-    ///
-    /// If the inner array is empty u8::MAX is returned.
+    /// array or if the array is empty, u8::MAX is returned.
     ///
     pub fn interpolate(&self, x: i16) -> u8 {
         let mut iter = self.inner.iter();
 
         if let Some((mut temp1, mut fan_pwm1)) = iter.next() {
+            // if x is less than minimum temperature, return minimum pwm
             if x < temp1 {
                 return fan_pwm1;
             }
             for (temp2, fan_pwm2) in iter {
+                // Interpolation
                 if x < *temp2 {
                     return (((fan_pwm1 as i16 * (*temp2 - x)) + *fan_pwm2 as i16 * (x - temp1))
                         / (*temp2 - temp1)) as u8;
@@ -73,6 +75,7 @@ impl TempToPwm {
             }
         }
 
+        // Empty array
         u8::MAX
     }
 }
