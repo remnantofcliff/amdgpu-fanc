@@ -1,15 +1,21 @@
 #include "signal_handling.hpp"
+#include <atomic>
 #include <csignal>
 
-static bool received = false;
+static std::atomic_bool received(false);
 
-static void signal_handler(int) { received = true; }
+static void signal_handler(int) {
+  received.store(true, std::memory_order_relaxed);
+}
+
+static constexpr struct sigaction construct_signal_action() {
+  struct sigaction signal_action {};
+  signal_action.sa_handler = signal_handler;
+  return signal_action;
+}
 
 int8_t signals::listen() {
-  static struct sigaction signal_action;
-  sigemptyset(&signal_action.sa_mask);
-  signal_action.sa_flags = 0;
-  signal_action.sa_handler = signal_handler;
+  struct sigaction signal_action = construct_signal_action();
 
   return sigaction(SIGHUP, &signal_action, nullptr) +
          sigaction(SIGINT, &signal_action, nullptr) +
@@ -17,4 +23,6 @@ int8_t signals::listen() {
          sigaction(SIGTERM, &signal_action, nullptr);
 }
 
-bool signals::should_close() { return received; }
+bool signals::should_close() {
+  return received.load(std::memory_order_relaxed);
+}

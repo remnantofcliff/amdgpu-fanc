@@ -16,16 +16,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     signals::listen()?;
 
-    let mut string_buffer_mut = String::with_capacity(8);
-    let mut pwm_container = vec![255; files.len()];
+    // Avoid allocations by reusing buffer
+    let mut string_buffer = String::with_capacity(8);
 
     loop {
         if signals::should_close() {
             break Ok(());
         }
 
-        files.read_temps_to_pwms(&mut string_buffer_mut, &mut pwm_container, temp_to_pwm)?;
-        files.write_pwms(&mut string_buffer_mut, &pwm_container)?;
+        files.update_pwms(&mut string_buffer, temp_to_pwm)?;
 
         std::thread::sleep(SLEEP_DURATION);
     }

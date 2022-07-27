@@ -1,5 +1,7 @@
 use std::ops::{Div, Mul};
 
+const BAD_ARG_FORMAT_STR: &str = "Bad argument format: try 'temp:fan_percentage'";
+
 ///
 /// A structure that can interpolate a pwm value based on the temperature given
 /// via `interpolate(x: i16)`-method.
@@ -26,12 +28,12 @@ impl TempToPwm {
                     (
                         split
                             .next()
-                            .unwrap()
+                            .expect(BAD_ARG_FORMAT_STR)
                             .parse::<i16>()
                             .expect("Could not parse temperature before ':'"),
                         split
                             .next()
-                            .expect("Bad argument format: try 'temp:fan_percentage")
+                            .expect(BAD_ARG_FORMAT_STR)
                             .parse::<u16>()
                             .expect("Could not parse fan speed percent after ':'")
                             .mul(255)
@@ -55,21 +57,19 @@ impl TempToPwm {
     /// If the inner array is empty u8::MAX is returned.
     ///
     pub fn interpolate(&self, x: i16) -> u8 {
-        let mut iter = self.inner.iter().peekable();
+        let mut iter = self.inner.iter();
 
-        if let Some((first_temp, first_fan_pwm)) = iter.peek() {
-            if x < *first_temp {
-                return *first_fan_pwm;
+        if let Some((mut temp1, mut fan_pwm1)) = iter.next() {
+            if x < temp1 {
+                return fan_pwm1;
             }
-        }
-        while let Some((temp1, fan_pwm1)) = iter.next() {
-            if let Some((temp2, fan_pwm2)) = iter.peek() {
+            for (temp2, fan_pwm2) in iter {
                 if x < *temp2 {
-                    return (((*fan_pwm1 as i16 * (*temp2 - x)) + *fan_pwm2 as i16 * (x - *temp1))
-                        / (*temp2 - *temp1)) as u8;
+                    return (((fan_pwm1 as i16 * (*temp2 - x)) + *fan_pwm2 as i16 * (x - temp1))
+                        / (*temp2 - temp1)) as u8;
                 }
-            } else {
-                return *fan_pwm1;
+                temp1 = *temp2;
+                fan_pwm1 = *fan_pwm2;
             }
         }
 

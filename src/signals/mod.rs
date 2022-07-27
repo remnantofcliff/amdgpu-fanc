@@ -7,7 +7,7 @@ pub fn listen() -> Result<(), &'static str> {
     if unsafe { bindings::signals::listen() } == 0 {
         Ok(())
     } else {
-        Err("Failed to set signals")
+        Err("Failed to set signal callback")
     }
 }
 
