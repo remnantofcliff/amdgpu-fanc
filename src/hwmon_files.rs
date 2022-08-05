@@ -22,7 +22,7 @@ impl HwmonFiles {
     ///
     /// Returns a new HwmonFiles-struct.
     ///
-    pub fn new() -> Result<HwmonFiles, std::io::Error> {
+    pub fn new() -> Result<Self, std::io::Error> {
         let mut pwm1_vec = Vec::with_capacity(1);
 
         let mut tempx_input_vec = Vec::with_capacity(1);
@@ -53,7 +53,7 @@ impl HwmonFiles {
             }
         }
 
-        Ok(HwmonFiles {
+        Ok(Self {
             pwm1: pwm1_vec.into_boxed_slice(),
             tempx_input: tempx_input_vec.into_boxed_slice(),
         })
@@ -118,15 +118,13 @@ fn change_fan_control_mode(mut base_path: PathBuf, mode: Mode) -> Result<(), std
 }
 
 fn get_hwmon_paths() -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
-    std::fs::read_dir("/sys/class/hwmon/").map(|dir| {
-        dir.filter_map(|result| result.ok())
-            .map(|entry| entry.path())
-    })
+    std::fs::read_dir("/sys/class/hwmon/")
+        .map(|dir| dir.filter_map(Result::ok).map(|entry| entry.path()))
 }
 
 fn path_is_amdgpu_path(path: &Path) -> Result<bool, std::io::Error> {
     std::fs::read_dir(path).map(|dir| {
-        dir.filter_map(|result| result.ok()).any(|entry| {
+        dir.filter_map(Result::ok).any(|entry| {
             entry.file_name().to_str() == Some("name")
                 && std::fs::read_to_string(entry.path()).ok() == Some("amdgpu\n".into())
         })

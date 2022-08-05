@@ -1,20 +1,14 @@
+use std::os::raw::c_int;
+
 mod bindings;
 
 ///
 /// Sets the callbacks for unix signals.
 ///
-pub fn listen() -> Result<(), &'static str> {
-    if unsafe { bindings::signals::listen() } == 0 {
+pub fn listen(handler: extern "C" fn(c_int)) -> Result<(), &'static str> {
+    if unsafe { bindings::signals_listen(handler) } == 0 {
         Ok(())
     } else {
-        Err("Failed to set signal callback")
+        Err("Failed to set signal callbacks")
     }
-}
-
-///
-/// Returns if the program should close. If signals::listen() was not called,
-/// the function will always return false.
-///
-pub fn should_close() -> bool {
-    unsafe { bindings::signals::should_close() }
 }

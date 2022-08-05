@@ -20,7 +20,7 @@ impl TempToPwm {
     /// Panics if the command-line arguments are faulty.
     ///
     pub fn from_args() -> Self {
-        TempToPwm {
+        Self {
             inner: std::env::args()
                 // Skip executable name
                 .skip(1)
@@ -54,7 +54,7 @@ impl TempToPwm {
     /// array, the pwm corresponding to the minimum temperature is used.
     ///
     /// If the temperature is higher than the maximum temperature in the inner
-    /// array or if the array is empty, u8::MAX is returned.
+    /// array or if the array is empty, `u8::MAX` is returned.
     ///
     pub fn interpolate(&self, x: i16) -> u8 {
         let mut iter = self.inner.iter();
@@ -67,7 +67,8 @@ impl TempToPwm {
             for (temp2, fan_pwm2) in iter {
                 // Interpolation
                 if x < *temp2 {
-                    return (((fan_pwm1 as i16 * (*temp2 - x)) + *fan_pwm2 as i16 * (x - temp1))
+                    return (((i16::from(fan_pwm1) * (*temp2 - x))
+                        + i16::from(*fan_pwm2) * (x - temp1))
                         / (*temp2 - temp1)) as u8;
                 }
                 temp1 = *temp2;
