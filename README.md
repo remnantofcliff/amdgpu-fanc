@@ -41,5 +41,5 @@ cargo build --release
 ```
 The executable will be placed in ./target/release/
 
-See section [How to use it?](#h2-how-to-use-it?) for how to use the generated
+See section [How to use it?](#how-to-use-it) for how to use the generated
 executable.

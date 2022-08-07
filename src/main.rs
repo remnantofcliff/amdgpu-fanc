@@ -10,8 +10,7 @@ use hwmon_files::{change_fan_control_mode, Mode};
 use interpolation::TempToPwm;
 use std::{
     fmt::Write,
-    fs::{read_to_string, File},
-    io::{BufRead, BufReader, Read},
+    fs::read_to_string,
     os::raw::c_int,
     path::Path,
     sync::atomic::{self, AtomicBool},
