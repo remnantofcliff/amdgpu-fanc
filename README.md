@@ -9,9 +9,14 @@ kernel driver.
 
 ## How to use it?
 
-amdgpu-fanc takes command line arguments in the form: `celsius:fan_speed` and
-then linearly interpolates between these arguments. For example `50:65` would
-translate to 'at fifty degrees celsius the fan should spin at 65%'.
+1. Create a config file at your desired path that contains lines with the
+following format: `temperature => fan_percentage` e.g. `10 => 50`. The example
+translates to "at 10°C, fan speed should be at 50%"
+
+2. Run `amdgpu-fanc find` to print out paths to valid gpu hwmon directories.
+Copy the path of the gpu you want to control.
+
+3. Run `amdgpu-fanc run -c path/to/config -p path/to/gpu` and you are set!
 
 ## How does it work?
 
@@ -36,4 +41,5 @@ cargo build --release
 ```
 The executable will be placed in ./target/release/
 
-Example run command: `sudo amdgpu-fanc 30:30 50:35 60:40 70:50 90:100`
+See section [How to use it?](#h2-how-to-use-it?) for how to use the generated
+executable.

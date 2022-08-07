@@ -1,107 +1,81 @@
-use crate::interpolation::TempToPwm;
 use std::{
-    fmt::Write as FWrite,
-    fs::File,
-    io::{Read, Seek, Write},
-    path::{Path, PathBuf},
+    fs::{read_dir, read_to_string, File},
+    io::{self, Read, Seek, Write},
+    path::Path,
 };
 
 ///
 /// Contains necessary files for controlling the gpu fans. Manual fan control
 /// is disabled when the struct is dropped.
 ///
-pub struct HwmonFiles {
+pub struct Files {
     // pwm files to write to
-    pwm1: Box<[File]>,
+    pwm1: File,
 
     // files to read temperatures from
-    tempx_input: Box<[File]>,
+    tempx_input: File,
 }
 
-impl HwmonFiles {
+impl Files {
     ///
     /// Returns a new HwmonFiles-struct.
     ///
-    pub fn new() -> Result<Self, std::io::Error> {
-        let mut pwm1_vec = Vec::with_capacity(1);
+    pub fn new(hwmon_path: &Path) -> Result<Self, io::Error> {
+        let mut path = hwmon_path.to_path_buf();
+        // open /sys/class/hwmon/hwmon(x)/temp(y)_input
+        path.push("temp2_input");
 
-        let mut tempx_input_vec = Vec::with_capacity(1);
+        // Fallback temperature read
+        if !path.exists() {
+            path.pop();
+            path.push("temp1_input");
+        }
 
-        for mut path in get_hwmon_paths()? {
-            if path_is_amdgpu_path(&path)? {
-                // open /sys/class/hwmon/hwmon(x)/temp(y)_input
-                path.push("temp2_input");
+        let tempx_input = File::open(&path)?;
 
-                // Fallback temperature read
-                if !path.exists() {
-                    path.pop();
-                    path.push("temp1_input");
+        path.pop();
+
+        path.push("pwm1");
+
+        // open /sys/class/hwmon/hwmon(x)/pwm1
+        let pwm1 = File::create(&path)?;
+
+        Ok(Self { pwm1, tempx_input })
+    }
+
+    pub fn print_valid_devices() -> Result<(), io::Error> {
+        for entry in read_dir("/sys/class/hwmon/")? {
+            let entry = entry?;
+            let mut path = entry.path();
+            path.push("name");
+            if read_to_string(&path)?.as_str() == "amdgpu\n" {
+                path.pop();
+                if let Some(path) = path.to_str() {
+                    println!("Valid gpu path found: {path}");
                 }
-
-                tempx_input_vec.push(File::open(&path)?);
-
-                path.pop();
-
-                path.push("pwm1");
-
-                // open /sys/class/hwmon/hwmon(x)/pwm1
-                pwm1_vec.push(File::create(&path)?);
-
-                path.pop();
-
-                change_fan_control_mode(path, Mode::Manual)?;
             }
         }
 
-        Ok(Self {
-            pwm1: pwm1_vec.into_boxed_slice(),
-            tempx_input: tempx_input_vec.into_boxed_slice(),
-        })
+        Ok(())
+    }
+
+    pub fn read_temp(&mut self, buf: &mut String) -> Result<(), io::Error> {
+        self.tempx_input.read_to_string(buf)?;
+        self.tempx_input.rewind()?;
+
+        buf.truncate(buf.len() - 4);
+
+        Ok(())
     }
 
     ///
     /// Read the temperatures from files and converts it to pwm as u8 using the
     /// func. buf is just a String buffer to avoid allocations.
     ///
-    pub fn update_pwms(
-        &mut self,
-        buf: &mut String,
-        temp_to_pwm: &TempToPwm,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        for (tempx_input, pwm1) in self.tempx_input.iter_mut().zip(self.pwm1.iter_mut()) {
-            buf.clear();
-
-            tempx_input.read_to_string(buf)?;
-
-            tempx_input.rewind()?;
-
-            buf.clear();
-
-            let pwm =
-                temp_to_pwm.interpolate((buf[0..buf.len() - 1].parse::<i32>()? / 1000) as i16);
-
-            writeln!(buf, "{pwm}")?;
-
-            pwm1.write_all(buf.as_bytes())?;
-        }
+    pub fn set_pwm(&mut self, buf: &mut String) -> Result<(), io::Error> {
+        self.pwm1.write_all(buf.as_bytes())?;
 
         Ok(())
-    }
-}
-
-impl Drop for HwmonFiles {
-    fn drop(&mut self) {
-        fn inner() -> Result<(), std::io::Error> {
-            for path in get_hwmon_paths()? {
-                if path_is_amdgpu_path(&path)? {
-                    change_fan_control_mode(path, Mode::Automatic)?;
-                }
-            }
-
-            Ok(())
-        }
-
-        inner().expect("WARNING: Failed to re-enable automatic fan control");
     }
 }
 
@@ -111,22 +85,12 @@ pub enum Mode {
     Manual = b'1',
 }
 
-fn change_fan_control_mode(mut base_path: PathBuf, mode: Mode) -> Result<(), std::io::Error> {
-    base_path.push("pwm1_enable");
-
-    File::create(base_path)?.write_all(&[mode as u8, b'\n'])
-}
-
-fn get_hwmon_paths() -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
-    std::fs::read_dir("/sys/class/hwmon/")
-        .map(|dir| dir.filter_map(Result::ok).map(|entry| entry.path()))
-}
-
-fn path_is_amdgpu_path(path: &Path) -> Result<bool, std::io::Error> {
-    std::fs::read_dir(path).map(|dir| {
-        dir.filter_map(Result::ok).any(|entry| {
-            entry.file_name().to_str() == Some("name")
-                && std::fs::read_to_string(entry.path()).ok() == Some("amdgpu\n".into())
-        })
-    })
+///
+/// Changes the control mode of the fans. `base_path` gets changed to the
+/// `pwm1_enable` path.
+///
+pub fn change_fan_control_mode(hwmon_path: &Path, mode: Mode) -> Result<(), io::Error> {
+    let mut path = hwmon_path.to_path_buf();
+    path.push("pwm1_enable");
+    File::create(path)?.write_all(&[mode as u8, b'\n'])
 }

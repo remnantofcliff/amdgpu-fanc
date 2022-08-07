@@ -1,50 +1,71 @@
-use std::ops::{Div, Mul};
+use std::fmt;
+use std::{
+    num::ParseIntError,
+    ops::{Div, Mul},
+};
 
-const BAD_ARG_FORMAT_STR: &str = "Bad argument format: try 'temp:fan_percentage'";
+const BAD_FORMAT_STR: &str = "Bad config format: try 'temp => fan_percentage'";
+
+#[derive(Debug)]
+pub enum TempToPwmError {
+    Parse(ParseIntError),
+    BadConfig(&'static str),
+}
+
+impl fmt::Display for TempToPwmError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TempToPwmError::Parse(e) => write!(f, "{e}"),
+            TempToPwmError::BadConfig(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for TempToPwmError {}
 
 ///
 /// A structure that can interpolate a pwm value based on the temperature given
 /// via `interpolate(x: i16)`-method.
 ///
+#[derive(Debug)]
 pub struct TempToPwm {
     inner: Box<[(i16, u8)]>,
 }
+
 impl TempToPwm {
     ///
-    /// Generates the struct based on command-line arguments. The arguments
-    /// should be formatted as 'temp:fan_percentage' as in "30:50", which
-    /// translates to "At thirty degrees celcius, fan speed should be at 50
-    /// percent."
+    /// Parses a lines from a config file and creates a `TempToPwm` struct that
+    /// can interpolate between values contained in the internal array.
     ///
-    /// # Panics
-    /// Panics if the command-line arguments are faulty.
-    ///
-    pub fn from_args() -> Self {
-        Self {
-            inner: std::env::args()
-                // Skip executable name
-                .skip(1)
-                .map(|arg| {
-                    let mut split = arg.split(':');
+    pub fn from_config_lines(lines: &[&str]) -> Result<Self, TempToPwmError> {
+        let mut inner = Vec::with_capacity(lines.len());
 
-                    (
-                        split
-                            .next()
-                            .expect(BAD_ARG_FORMAT_STR)
-                            .parse::<i16>()
-                            .expect("Could not parse temperature before ':'"),
-                        split
-                            .next()
-                            .expect(BAD_ARG_FORMAT_STR)
-                            .parse::<u16>()
-                            .expect("Could not parse fan speed percent after ':'")
-                            .mul(255)
-                            .div(100) as u8,
-                    )
-                })
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
+        for line in lines {
+            let mut split = line.split("=>");
+            let temp = split
+                .next()
+                .ok_or(TempToPwmError::BadConfig(BAD_FORMAT_STR))?
+                .trim()
+                .parse::<i16>()
+                .map_err(TempToPwmError::Parse)?;
+            let pwm = split
+                .next()
+                .ok_or(TempToPwmError::BadConfig(BAD_FORMAT_STR))?
+                .trim()
+                .parse::<u16>()
+                .map_err(TempToPwmError::Parse)?
+                .mul(255)
+                .div(100) as u8;
+
+            inner.push((temp, pwm));
         }
+
+        inner.dedup_by(|(temp1, _), (temp2, _)| temp1 == temp2);
+        inner.sort_unstable();
+
+        let inner = inner.into_boxed_slice();
+
+        Ok(Self { inner })
     }
 
     ///
@@ -60,8 +81,8 @@ impl TempToPwm {
         let mut iter = self.inner.iter();
 
         if let Some((mut temp1, mut fan_pwm1)) = iter.next() {
-            // if x is less than minimum temperature, return minimum pwm
-            if x < temp1 {
+            // if x is less or equal to minimum temperature, return minimum pwm
+            if x <= temp1 {
                 return fan_pwm1;
             }
             for (temp2, fan_pwm2) in iter {
@@ -76,7 +97,39 @@ impl TempToPwm {
             }
         }
 
-        // Empty array
         u8::MAX
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::TempToPwm;
+
+    #[test]
+    fn new_test() {
+        let arr = [
+            " 22   => 45".to_string(),
+            "19=>35".to_string(),
+            "59 => 100".to_string(),
+        ];
+        let t = TempToPwm::from_config_lines(&arr).unwrap();
+        assert_eq!(t.inner[0].0, 19);
+        assert_eq!(t.inner[0].1, 89);
+        assert_eq!(t.inner[1].0, 22);
+        assert_eq!(t.inner[1].1, 114);
+        assert_eq!(t.inner[2].0, 59);
+        assert_eq!(t.inner[2].1, 255);
+    }
+
+    #[test]
+    fn interpolate_test() {
+        let t = TempToPwm {
+            inner: Box::new([(0, 10), (50, 40), (60, 70), (100, 100)]),
+        };
+        assert_eq!(t.interpolate(-1), 10);
+        assert_eq!(t.interpolate(20), 22);
+        assert_eq!(t.interpolate(51), 43);
+        assert_eq!(t.interpolate(63), 72);
+        assert_eq!(t.interpolate(101), u8::MAX);
     }
 }
