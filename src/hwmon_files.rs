@@ -73,9 +73,7 @@ impl Files {
     /// func. buf is just a String buffer to avoid allocations.
     ///
     pub fn set_pwm(&mut self, buf: &mut String) -> Result<(), io::Error> {
-        self.pwm1.write_all(buf.as_bytes())?;
-
-        Ok(())
+        self.pwm1.write_all(buf.as_bytes())
     }
 }
 
