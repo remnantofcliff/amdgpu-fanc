@@ -35,6 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ArgCommands::Run {
             config_path,
             hwmon_path,
+            sensor_type,
         } => {
             // Set listener for shutdown signals
             signals::listen(signal_handler)?;
@@ -46,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let path = Path::new(&hwmon_path);
 
             // Get necessary files
-            let mut files = Files::new(path)?;
+            let mut files = Files::new(path, &sensor_type)?;
 
             // Avoid allocations by reusing buffer
             let mut buf = String::with_capacity(8);

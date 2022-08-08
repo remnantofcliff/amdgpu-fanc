@@ -6,23 +6,6 @@ use std::{
 
 const BAD_FORMAT_STR: &str = "Bad config format: try 'temp => fan_percentage'";
 
-#[derive(Debug)]
-pub enum TempToPwmError {
-    Parse(ParseIntError),
-    BadConfig(&'static str),
-}
-
-impl fmt::Display for TempToPwmError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TempToPwmError::Parse(e) => write!(f, "{e}"),
-            TempToPwmError::BadConfig(e) => write!(f, "{e}"),
-        }
-    }
-}
-
-impl std::error::Error for TempToPwmError {}
-
 ///
 /// A structure that can interpolate a pwm value based on the temperature given
 /// via `interpolate(x: i16)`-method.
@@ -100,6 +83,23 @@ impl TempToPwm {
         u8::MAX
     }
 }
+
+#[derive(Debug)]
+pub enum TempToPwmError {
+    Parse(ParseIntError),
+    BadConfig(&'static str),
+}
+
+impl fmt::Display for TempToPwmError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TempToPwmError::Parse(e) => write!(f, "{e}"),
+            TempToPwmError::BadConfig(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for TempToPwmError {}
 
 #[cfg(test)]
 mod test {

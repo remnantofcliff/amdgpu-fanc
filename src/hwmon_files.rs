@@ -4,6 +4,8 @@ use std::{
     path::Path,
 };
 
+use crate::config::SensorType;
+
 ///
 /// Contains necessary files for controlling the gpu fans. Manual fan control
 /// is disabled when the struct is dropped.
@@ -20,13 +22,27 @@ impl Files {
     ///
     /// Returns a new HwmonFiles-struct.
     ///
-    pub fn new(hwmon_path: &Path) -> Result<Self, io::Error> {
+    pub fn new(hwmon_path: &Path, sensor_type: &SensorType) -> Result<Self, io::Error> {
         let mut path = hwmon_path.to_path_buf();
         // open /sys/class/hwmon/hwmon(x)/temp(y)_input
-        path.push("temp2_input");
+        let arr = [
+            b't',
+            b'e',
+            b'm',
+            b'p',
+            *sensor_type as u8,
+            b'_',
+            b'i',
+            b'n',
+            b'p',
+            b'u',
+            b't',
+        ];
+        path.push(unsafe { std::str::from_utf8_unchecked(&arr) });
 
         // Fallback temperature read
         if !path.exists() {
+            eprintln!("WARNING: Using fallback sensor type");
             path.pop();
             path.push("temp1_input");
         }
