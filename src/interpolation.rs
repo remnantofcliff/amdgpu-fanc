@@ -5,6 +5,7 @@ use std::{
 };
 
 const BAD_FORMAT_STR: &str = "Bad config format: try 'temp => fan_percentage'";
+const ERROR_STR: &str = "Error in parsing config:";
 
 ///
 /// A structure that can interpolate a pwm value based on the temperature given
@@ -29,14 +30,13 @@ impl TempToPwm {
                 .next()
                 .ok_or(TempToPwmError::BadConfig(BAD_FORMAT_STR))?
                 .trim()
-                .parse::<i16>()
-                .map_err(TempToPwmError::Parse)?;
+                .parse::<i16>()?;
+
             let pwm = split
                 .next()
                 .ok_or(TempToPwmError::BadConfig(BAD_FORMAT_STR))?
                 .trim()
-                .parse::<u16>()
-                .map_err(TempToPwmError::Parse)?
+                .parse::<u16>()?
                 .mul(255)
                 .div(100) as u8;
 
@@ -68,6 +68,7 @@ impl TempToPwm {
             if x <= temp1 {
                 return fan_pwm1;
             }
+
             for (temp2, fan_pwm2) in iter {
                 // Interpolation
                 if x < *temp2 {
@@ -75,6 +76,7 @@ impl TempToPwm {
                         + i16::from(*fan_pwm2) * (x - temp1))
                         / (*temp2 - temp1)) as u8;
                 }
+
                 temp1 = *temp2;
                 fan_pwm1 = *fan_pwm2;
             }
@@ -93,13 +95,19 @@ pub enum TempToPwmError {
 impl fmt::Display for TempToPwmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TempToPwmError::Parse(e) => write!(f, "{e}"),
-            TempToPwmError::BadConfig(e) => write!(f, "{e}"),
+            TempToPwmError::Parse(e) => write!(f, "{ERROR_STR} {e}"),
+            TempToPwmError::BadConfig(e) => write!(f, "{ERROR_STR} {e}"),
         }
     }
 }
 
 impl std::error::Error for TempToPwmError {}
+
+impl From<ParseIntError> for TempToPwmError {
+    fn from(e: ParseIntError) -> Self {
+        Self::Parse(e)
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -107,11 +115,7 @@ mod test {
 
     #[test]
     fn new_test() {
-        let arr = [
-            " 22   => 45".to_string(),
-            "19=>35".to_string(),
-            "59 => 100".to_string(),
-        ];
+        let arr = [" 22   => 45", "19=>35", "59 => 100"];
         let t = TempToPwm::from_config_lines(&arr).unwrap();
         assert_eq!(t.inner[0].0, 19);
         assert_eq!(t.inner[0].1, 89);
