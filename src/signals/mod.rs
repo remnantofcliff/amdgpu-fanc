@@ -1,5 +1,5 @@
-use crate::RUNNING;
-use std::{os::raw::c_int, sync::atomic};
+use crate::mode::ManualFanControl;
+use std::{os::raw::c_int, process};
 
 ///
 /// Sets the callbacks for unix signals.
@@ -12,7 +12,9 @@ pub fn listen() {
 /// Signal handler function
 ///
 extern "C" fn signal_handler(_: c_int) {
-    RUNNING.store(false, atomic::Ordering::Relaxed);
+    ManualFanControl.disable();
+
+    process::exit(0);
 }
 
 extern "C" {

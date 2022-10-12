@@ -16,6 +16,16 @@ pub enum SensorType {
     Memory = b'3',
 }
 
+impl SensorType {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            SensorType::Edge => "temp1_input",
+            SensorType::Junction => "temp2_input",
+            SensorType::Memory => "temp3_input",
+        }
+    }
+}
+
 #[derive(Subcommand)]
 pub enum ArgCommands {
     /// Control fans
