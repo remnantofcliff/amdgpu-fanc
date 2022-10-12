@@ -26,18 +26,21 @@ impl TempToPwm {
             })
             .flat_map(|result| {
                 result.map(|(temp_str, fan_percent_str)| {
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                     match (
                         temp_str.trim().parse::<i16>(),
-                        fan_percent_str.trim().parse::<u16>(),
+                        fan_percent_str.trim().parse::<f32>(),
                     ) {
-                        (Ok(temp), Ok(fan_percent)) => Ok((temp, (fan_percent * 255 / 100) as u8)),
-                        (Err(e), _) => Err(Error::Parse(e)),
-                        (_, Err(e)) => Err(Error::Parse(e)),
+                        (Ok(temp), Ok(fan_percent)) => {
+                            Ok((temp, (fan_percent * f32::from(u8::MAX)) as u8))
+                        }
+                        (Err(e), _) => Err(Error::ParseTemperature(e)),
+                        (_, Err(e)) => Err(Error::ParseFanPercent(e)),
                     }
                 })
             })
             .collect::<Result<Box<[(i16, u8)]>, Error>>()
-            .map(|inner| TempToPwm { inner })
+            .map(|inner| Self { inner })
     }
 
     ///
@@ -58,6 +61,7 @@ impl TempToPwm {
                 return fan_pwm1;
             }
 
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             for (temp2, fan_pwm2) in iter {
                 // Interpolation
                 if temp < *temp2 {

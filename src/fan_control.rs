@@ -27,7 +27,7 @@ static PWM_ENABLE_FILE: Mutex<Option<File>> = Mutex::new(None);
 
 impl FanControl {
     ///
-    /// Write to FanControl::ENABLE_PWM_FILE_NAME to enable automatic fan
+    /// Write to `FanControl::ENABLE_PWM_FILE_NAME` to enable automatic fan
     /// control.
     ///
     const AUTO_PWM_BYTES: &[u8] = b"2\n";
@@ -38,7 +38,7 @@ impl FanControl {
     ///
     const ENABLE_PWM_FILE_NAME: &str = "pwm1_enable";
     ///
-    /// Write to FanControl::ENABLE_PWM_FILE_NAME to enable manual fan
+    /// Write to `FanControl::ENABLE_PWM_FILE_NAME` to enable manual fan
     /// control.
     ///
     const MANUAL_PWM_BYTES: &[u8] = b"1\n";
@@ -51,8 +51,9 @@ impl FanControl {
     /// Disables manual fan control, does nothing if already disabled.
     ///
     pub fn disable() {
-        let mut pwm1_enable = match PWM_ENABLE_FILE.lock().unwrap().take() {
-            Some(it) => it,
+        let option = PWM_ENABLE_FILE.lock().unwrap().take();
+        let mut pwm1_enable = match option {
+            Some(file) => file,
             _ => return,
         };
 
@@ -81,7 +82,7 @@ Reboot system or disable it manually"
     /// Sets the fan control to manual mode. Returns a struct that, when dropped,
     /// will disable manual fan control.
     ///
-    pub fn enable(hwmon_path: &Path, sensor_type: &SensorType) -> Result<FanControl, Error> {
+    pub fn enable(hwmon_path: &Path, sensor_type: SensorType) -> Result<Self, Error> {
         let mut pwm1_enable =
             File::create(hwmon_path.join(Self::ENABLE_PWM_FILE_NAME)).map_err(Error::OpenFile)?;
 
@@ -93,7 +94,7 @@ Reboot system or disable it manually"
 
         *lock = Some(pwm1_enable);
 
-        Ok(FanControl {
+        Ok(Self {
             pwm: PwmWriter::new(hwmon_path)?,
             temperature: TemperatureReader::new(hwmon_path, sensor_type)?,
         })

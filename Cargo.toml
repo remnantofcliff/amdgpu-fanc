@@ -1,7 +1,12 @@
 [package]
-name = "amdgpu-fanc"
-version = "1.0.0"
+categories = ["command-line-utilities", "hardware-support"]
+description = "A lightweight and minimal utility for controlling linux amdgpu fans"
 edition = "2021"
+keywords = ["amdgpu", "fan", "fan control"]
+license-file = "LICENSE"
+name = "amdgpu-fanc"
+repository = "https://github.com/remnantofcliff/amdgpu-fanc"
+version = "1.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

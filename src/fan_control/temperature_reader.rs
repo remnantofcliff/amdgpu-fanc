@@ -13,7 +13,7 @@ pub struct TemperatureReader {
 }
 
 impl TemperatureReader {
-    pub fn new(hwmon_path: &Path, sensor_type: &SensorType) -> Result<Self, super::Error> {
+    pub fn new(hwmon_path: &Path, sensor_type: SensorType) -> Result<Self, super::Error> {
         File::open({
             let mut path = hwmon_path.join(sensor_type.file_name());
 
@@ -46,6 +46,7 @@ impl TemperatureReader {
 
         let mut result = 0;
 
+        #[allow(clippy::cast_possible_truncation)]
         for (i, c) in buf[..length]
             .iter()
             .rev()

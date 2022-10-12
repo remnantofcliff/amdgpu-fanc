@@ -1,0 +1,12 @@
+[Unit]
+Description=amdgpu fan control
+
+[Service]
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/local/bin/amdgpu-fanc run -c /usr/local/etc/amdgpu-fanconfig -p /sys/class/hwmon/hwmon4/
+Restart=on-failure
+Type=idle
+
+[Install]
+WantedBy=multi-user.target

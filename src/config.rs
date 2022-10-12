@@ -19,11 +19,11 @@ pub enum SensorType {
 }
 
 impl SensorType {
-    pub fn file_name(self) -> &'static str {
+    pub const fn file_name(self) -> &'static str {
         match self {
-            SensorType::Edge => "temp1_input",
-            SensorType::Junction => "temp2_input",
-            SensorType::Memory => "temp3_input",
+            Self::Edge => "temp1_input",
+            Self::Junction => "temp2_input",
+            Self::Memory => "temp3_input",
         }
     }
 }

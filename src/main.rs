@@ -1,3 +1,8 @@
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(clippy::cargo)]
+
 mod config;
 mod error;
 mod fan_control;
@@ -38,15 +43,13 @@ fn main() -> Result<(), Error> {
             config_path,
             hwmon_path,
             sensor_type,
-        } => run(
-            Path::new(&config_path),
-            Path::new(&hwmon_path),
-            &sensor_type,
-        ),
+        } => run(Path::new(&config_path), Path::new(&hwmon_path), sensor_type)?,
     }
+
+    Ok(())
 }
 
-fn find() -> Result<(), Error> {
+fn find() {
     read_dir(hwmon_top_dir!())
         .expect(HWMON_TOP_DIR_FAIL)
         .flatten()
@@ -59,14 +62,12 @@ fn find() -> Result<(), Error> {
         })
         .for_each(|path| {
             if let Some(path) = path.to_str() {
-                println!("Valid gpu path found: {path}")
+                println!("Valid gpu path found: {path}");
             }
         });
-
-    Ok(())
 }
 
-fn run(config_path: &Path, hwmon_path: &Path, sensor_type: &SensorType) -> Result<(), Error> {
+fn run(config_path: &Path, hwmon_path: &Path, sensor_type: SensorType) -> Result<(), Error> {
     signals::listen();
 
     let temp_to_pwm = TempToPwm::from_config(config_path)?;
