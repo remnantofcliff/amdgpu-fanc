@@ -2,6 +2,8 @@
 #include "stddef.h"
 
 void signals_listen(void (*handler)(int)) {
+  // The functions defined here should never fail with current usage according
+  // to the man pages.
   struct sigaction signal_action = {.sa_handler = handler, .sa_flags = 0};
 
   sigemptyset(&signal_action.sa_mask);

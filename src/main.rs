@@ -13,11 +13,11 @@ use clap::Parser;
 use config::{ArgCommands, Args, SensorType};
 use error::Error;
 use fan_control::FanControl;
-use interpolation::TempToPwm;
+use interpolation::Interpolator;
 use std::{fs::read_dir, path::Path, thread::sleep, time::Duration};
 
 ///
-/// Macro that gets replaced by the path to hwmon top folder.
+/// Macro that gets replaced by the path to top hwmon directory.
 ///
 macro_rules! hwmon_top_dir {
     () => {
@@ -33,7 +33,13 @@ const SLEEP_DURATION: Duration = Duration::from_secs(5);
 /// Directory to look for amdgpu hwmon directory.
 ///
 const HWMON_TOP_DIR_FAIL: &str = concat!("Failed to read ", hwmon_top_dir!(), " directory");
+///
+/// Hwmon identifier file name.
+///
 const HWMON_NAME_FILE_NAME: &str = "name";
+///
+/// Amdgpu name in `HWMON_NAME_FILE_NAME`.
+///
 const AMDGPU_HWMON_NAME: &str = "amdgpu\n";
 
 fn main() -> Result<(), Error> {
@@ -49,6 +55,9 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
+///
+/// Find and print amdgpu hwmon paths.
+///
 fn find() {
     read_dir(hwmon_top_dir!())
         .expect(HWMON_TOP_DIR_FAIL)
@@ -67,10 +76,13 @@ fn find() {
         });
 }
 
+///
+/// Run fan control
+///
 fn run(config_path: &Path, hwmon_path: &Path, sensor_type: SensorType) -> Result<(), Error> {
     signals::listen();
 
-    let temp_to_pwm = TempToPwm::from_config(config_path)?;
+    let temp_to_pwm = Interpolator::from_config(config_path)?;
     let mut fan_control = FanControl::enable(hwmon_path, sensor_type)?;
 
     loop {

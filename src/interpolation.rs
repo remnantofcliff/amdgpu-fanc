@@ -8,14 +8,14 @@ use std::path::Path;
 /// via `interpolate(x: i16)`-method.
 ///
 #[derive(Debug)]
-pub struct TempToPwm {
+pub struct Interpolator {
     inner: Box<[(i16, u8)]>,
 }
 
-impl TempToPwm {
+impl Interpolator {
     ///
-    /// Parses a lines from a config file and creates a `TempToPwm` struct that
-    /// can interpolate between values contained in the internal array.
+    /// Reads the config file at `config_path` and parses returns a new
+    /// `Interpolator` struct.
     ///
     pub fn from_config(config_path: &Path) -> Result<Self, Error> {
         std::fs::read_to_string(config_path)?
@@ -39,12 +39,17 @@ impl TempToPwm {
                     }
                 })
             })
-            .collect::<Result<Box<[(i16, u8)]>, Error>>()
+            .collect::<Result<Vec<(i16, u8)>, Error>>()
+            .map(|mut inner| {
+                inner.dedup_by_key(|(temp, _pwm)| *temp);
+                inner.sort_unstable();
+                inner.into_boxed_slice()
+            })
             .map(|inner| Self { inner })
     }
 
     ///
-    /// Interpolates the pwm based on temperature x.
+    /// Interpolates the pwm based on `temp` and the inner array.
     ///
     /// If the temperature is lower than the minimum temperature in the inner
     /// array, the pwm corresponding to the minimum temperature is used.
