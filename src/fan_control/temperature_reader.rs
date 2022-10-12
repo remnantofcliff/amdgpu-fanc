@@ -6,11 +6,14 @@ use std::{
 };
 
 pub struct TemperatureReader {
+    ///
+    /// The file to read temperatures from
+    ///
     tempx_input: File,
 }
 
 impl TemperatureReader {
-    pub fn new(hwmon_path: &Path, sensor_type: &SensorType) -> std::io::Result<Self> {
+    pub fn new(hwmon_path: &Path, sensor_type: &SensorType) -> Result<Self, super::Error> {
         File::open({
             let mut path = hwmon_path.join(sensor_type.file_name());
 
@@ -23,16 +26,23 @@ impl TemperatureReader {
             path
         })
         .map(|tempx_input| Self { tempx_input })
+        .map_err(super::Error::OpenFile)
     }
 
     ///
     /// Returns an integer with the current temperature
     ///
-    pub fn read(&mut self) -> Result<i16, std::io::Error> {
+    pub fn read(&mut self) -> Result<i16, super::Error> {
         let mut buf = [0; 10];
-        let length = self.tempx_input.read(&mut buf)? - 4;
+        let length = self
+            .tempx_input
+            .read(&mut buf)
+            .map_err(super::Error::ReadTemperature)?
+            - 4;
 
-        self.tempx_input.rewind()?;
+        self.tempx_input
+            .rewind()
+            .map_err(super::Error::ReadTemperature)?;
 
         let mut result = 0;
 

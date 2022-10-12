@@ -7,14 +7,16 @@ pub struct PwmWriter {
 impl PwmWriter {
     const PWM_FILE_NAME: &str = "pwm1";
 
-    pub fn new(hwmon_path: &Path) -> std::io::Result<Self> {
-        File::create(hwmon_path.join(Self::PWM_FILE_NAME)).map(|pwm1| Self { pwm1 })
+    pub fn new(hwmon_path: &Path) -> Result<Self, super::Error> {
+        File::create(hwmon_path.join(Self::PWM_FILE_NAME))
+            .map(|pwm1| Self { pwm1 })
+            .map_err(super::Error::OpenFile)
     }
 
     ///
     /// Writes the contents of the buffer to pwm1 file.
     ///
-    pub fn set_pwm(&mut self, pwm: u8) -> std::io::Result<()> {
+    pub fn set(&mut self, pwm: u8) -> Result<(), super::Error> {
         let arr = [
             pwm / 100 + b'0',
             pwm / 10 % 10 + b'0',
@@ -28,6 +30,6 @@ impl PwmWriter {
             100..=u8::MAX => &arr,
         };
 
-        self.pwm1.write_all(slice)
+        self.pwm1.write_all(slice).map_err(super::Error::WritePwm)
     }
 }

@@ -1,46 +1,60 @@
-mod app_error;
 mod config;
+mod error;
+mod fan_control;
 mod interpolation;
-mod mode;
-mod pwm_writer;
 mod signals;
-mod temperature_reader;
 
-use app_error::AppError;
 use clap::Parser;
-use config::{ArgCommands, Config, SensorType};
+use config::{ArgCommands, Args, SensorType};
+use error::Error;
+use fan_control::FanControl;
 use interpolation::TempToPwm;
-use mode::ManualFanControl;
-use pwm_writer::PwmWriter;
-use std::{
-    fs::{read_dir, read_to_string},
-    path::Path,
-    thread::sleep,
-    time::Duration,
-};
-use temperature_reader::TemperatureReader;
+use std::{fs::read_dir, path::Path, thread::sleep, time::Duration};
 
+///
+/// Macro that gets replaced by the path to hwmon top folder.
+///
+macro_rules! hwmon_top_dir {
+    () => {
+        "/sys/class/hwmon"
+    };
+}
+
+///
+/// Duration to sleep between updates.
+///
 const SLEEP_DURATION: Duration = Duration::from_secs(5);
+///
+/// Directory to look for amdgpu hwmon directory.
+///
+const HWMON_TOP_DIR_FAIL: &str = concat!("Failed to read ", hwmon_top_dir!(), " directory");
+const HWMON_NAME_FILE_NAME: &str = "name";
+const AMDGPU_HWMON_NAME: &str = "amdgpu\n";
 
-fn main() -> Result<(), AppError> {
-    match Config::parse().command {
+fn main() -> Result<(), Error> {
+    match Args::parse().command {
         ArgCommands::Find => find(),
         ArgCommands::Run {
             config_path,
             hwmon_path,
             sensor_type,
-        } => start_run(&config_path, Path::new(&hwmon_path), &sensor_type),
+        } => run(
+            Path::new(&config_path),
+            Path::new(&hwmon_path),
+            &sensor_type,
+        ),
     }
 }
 
-fn find() -> Result<(), AppError> {
-    read_dir("/sys/class/hwmon/")?
+fn find() -> Result<(), Error> {
+    read_dir(hwmon_top_dir!())
+        .expect(HWMON_TOP_DIR_FAIL)
         .flatten()
         .map(|entry| entry.path())
         .filter(|path| {
-            std::fs::read_to_string(path.join("name"))
+            std::fs::read_to_string(path.join(HWMON_NAME_FILE_NAME))
                 .ok()
-                .filter(|s| s.as_str() == "amdgpu\n")
+                .filter(|s| s.as_str() == AMDGPU_HWMON_NAME)
                 .is_some()
         })
         .for_each(|path| {
@@ -52,23 +66,16 @@ fn find() -> Result<(), AppError> {
     Ok(())
 }
 
-fn start_run(
-    config_path: &str,
-    hwmon_path: &Path,
-    sensor_type: &SensorType,
-) -> Result<(), AppError> {
+fn run(config_path: &Path, hwmon_path: &Path, sensor_type: &SensorType) -> Result<(), Error> {
     signals::listen();
 
-    let temp_to_pwm =
-        TempToPwm::from_config_lines(&read_to_string(config_path)?.lines().collect::<Vec<_>>())?;
-    let mut temp_reader = TemperatureReader::new(hwmon_path, sensor_type)?;
-    let mut pwm_writer = PwmWriter::new(hwmon_path)?;
-    let _disabler = ManualFanControl::enable(hwmon_path)?;
+    let temp_to_pwm = TempToPwm::from_config(config_path)?;
+    let mut fan_control = FanControl::enable(hwmon_path, sensor_type)?;
 
     loop {
-        let pwm = temp_to_pwm.interpolate(temp_reader.read()?);
+        let pwm = temp_to_pwm.interpolate(fan_control.read_temperature()?);
 
-        pwm_writer.set_pwm(pwm)?;
+        fan_control.set_pwm(pwm)?;
 
         sleep(SLEEP_DURATION);
     }
