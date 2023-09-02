@@ -13,12 +13,11 @@ version = "1.0.0"
 [profile.release]
 lto = true
 panic = "abort"
-codegen-units = 1
 strip = true
 
 [build-dependencies]
-cc = "1.0.73"
+cc = "1.0.83"
 
 [dependencies]
-clap = { version = "3.2.16", features = ["derive"] }
-thiserror = "1.0.37"
+clap = { version = "4.4.2", features = ["derive"] }
+thiserror = "1.0.47"

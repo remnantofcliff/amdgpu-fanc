@@ -1,4 +1,4 @@
-use clap::{clap_derive::ArgEnum, Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 ///
 /// A minimal utility for controlling amdgpu fans.
@@ -10,7 +10,7 @@ pub struct Args {
     pub command: ArgCommands,
 }
 
-#[derive(Clone, Copy, ArgEnum)]
+#[derive(Clone, Copy, ValueEnum)]
 #[repr(u8)]
 pub enum SensorType {
     Edge = b'1',
@@ -38,14 +38,14 @@ pub enum ArgCommands {
         /// Path to the configuration file containing a valid fan curve
         /// description.
         ///
-        #[clap(short = 'c', long, value_parser, value_name = "FILE")]
+        #[arg(short = 'c', long, value_name = "FILE")]
         config_path: String,
         ///
         /// Path to the hwmon directory of a valid gpu.
         ///
-        #[clap(short = 'p', long = "hwmon-path", value_parser, value_name = "DIR")]
+        #[arg(short = 'p', long = "hwmon-path", value_parser, value_name = "DIR")]
         hwmon_path: String,
-        #[clap(arg_enum, value_parser, default_value_t = SensorType::Junction)]
+        #[arg(value_enum, default_value_t = SensorType::Junction)]
         sensor_type: SensorType,
     },
     ///
