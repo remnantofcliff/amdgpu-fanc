@@ -5,7 +5,7 @@ pub struct PwmWriter {
 }
 
 impl PwmWriter {
-    const PWM_FILE_NAME: &str = "pwm1";
+    const PWM_FILE_NAME: &'static str = "pwm1";
 
     pub fn new(hwmon_path: &Path) -> Result<Self, super::Error> {
         File::create(hwmon_path.join(Self::PWM_FILE_NAME))

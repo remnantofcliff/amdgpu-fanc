@@ -11,11 +11,10 @@ pub struct Args {
 }
 
 #[derive(Clone, Copy, ValueEnum)]
-#[repr(u8)]
 pub enum SensorType {
-    Edge = b'1',
-    Junction = b'2',
-    Memory = b'3',
+    Edge,
+    Junction,
+    Memory,
 }
 
 impl SensorType {
@@ -44,7 +43,7 @@ pub enum ArgCommands {
         /// Path to the hwmon directory of a valid gpu.
         ///
         #[arg(short = 'p', long = "hwmon-path", value_parser, value_name = "DIR")]
-        hwmon_path: String,
+        hwmon_path: Option<String>,
         #[arg(value_enum, default_value_t = SensorType::Junction)]
         sensor_type: SensorType,
     },

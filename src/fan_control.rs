@@ -30,18 +30,18 @@ impl FanControl {
     /// Write to `FanControl::ENABLE_PWM_FILE_NAME` to enable automatic fan
     /// control.
     ///
-    const AUTO_PWM_BYTES: &[u8] = b"2\n";
+    const AUTO_PWM_BYTES: &'static [u8] = b"2\n";
     ///
     /// File name which contains information about gpu fan mode. Contains "2\n"
     /// if automatic control is on or "1\n" if control is manual. "0\n" would
     /// mean no fan control
     ///
-    const ENABLE_PWM_FILE_NAME: &str = "pwm1_enable";
+    const ENABLE_PWM_FILE_NAME: &'static str = "pwm1_enable";
     ///
     /// Write to `FanControl::ENABLE_PWM_FILE_NAME` to enable manual fan
     /// control.
     ///
-    const MANUAL_PWM_BYTES: &[u8] = b"1\n";
+    const MANUAL_PWM_BYTES: &'static [u8] = b"1\n";
     ///
     /// Number of retries on failure to enable automatic fan control
     ///
@@ -52,14 +52,11 @@ impl FanControl {
     ///
     pub fn disable() {
         let option = PWM_ENABLE_FILE.lock().unwrap().take();
-        let mut pwm1_enable = match option {
-            Some(file) => file,
-            _ => return,
-        };
+        let Some(mut pwm1_enable) = option else { return };
 
         for retry in 1..=Self::RETRIES {
             match pwm1_enable.write_all(Self::AUTO_PWM_BYTES) {
-                Ok(_) => return,
+                Ok(()) => return,
                 Err(e) => {
                     eprintln!(
                         "Setting automatic fan control failed: {e}\n\
@@ -90,9 +87,8 @@ Reboot system or disable it manually"
             .write_all(Self::MANUAL_PWM_BYTES)
             .map_err(Error::ManualControl)?;
 
-        let mut lock = PWM_ENABLE_FILE.lock().unwrap();
 
-        *lock = Some(pwm1_enable);
+        *PWM_ENABLE_FILE.lock().unwrap() = Some(pwm1_enable);
 
         Ok(Self {
             pwm: PwmWriter::new(hwmon_path)?,

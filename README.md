@@ -14,10 +14,7 @@ following format: `temperature => fan_speed` e.g. `10 => 0.50`. The example
 translates to "at 10°C, fan speed should be at 50%". There is also an example
 config included in the repository.
 
-2. Run `amdgpu-fanc find` to print out paths to valid gpu hwmon directories.
-Copy the path of the gpu you want to control.
-
-3. Run `sudo amdgpu-fanc run -c path/to/config -p path/to/gpu` with sudo
+2. Run `sudo amdgpu-fanc run -c path/to/config` with sudo
 privileges and you are set!
 
 ## How does it work?
